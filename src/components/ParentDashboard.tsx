@@ -43,7 +43,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
   const [trainFreq, setTrainFreq] = useState("3 hours/week");
 
   const upcomingSessions = appointments.filter(
-    (a) => (a.status === "requested" || a.status === "confirmed") && a.paymentStatus === "paid"
+    (a) => (a.status === "requested" || a.status === "confirmed")
   );
   
   const historySessions = appointments.filter(
@@ -380,9 +380,15 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
                               <p className="text-xs font-bold text-gray-800">{session.therapistName}</p>
                               <p className="text-[10px] text-gray-500 font-medium">Licensed Coaching Practitioner</p>
                             </div>
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono">
-                              Confirmed
-                            </span>
+                            {session.status === "confirmed" ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono">
+                                Confirmed
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono animate-pulse">
+                                Under Review
+                              </span>
+                            )}
                           </div>
                           
                           <div className="p-2.5 rounded-xl bg-white border border-gray-100 flex justify-between text-[11px] font-medium text-gray-700 font-mono">
@@ -479,9 +485,15 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
                               <p className="text-sm font-bold text-gray-800">{session.therapistName}</p>
                               <p className="text-[10px] text-gray-500 font-medium">Licensed Mind-gym Coach</p>
                             </div>
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono">
-                              Confirmed
-                            </span>
+                            {session.status === "confirmed" ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono">
+                                Confirmed
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-bold rounded uppercase tracking-wider font-mono animate-pulse">
+                                Under Review
+                              </span>
+                            )}
                           </div>
                           
                           <div className="p-2.5 rounded-xl bg-white border border-gray-100 flex justify-between text-[11px] font-medium text-gray-700 font-mono">

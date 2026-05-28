@@ -3,7 +3,7 @@ import { UserProfile, StudentProfile, TherapistProfile, Appointment } from "../t
 import { 
   ShieldCheck, Users, Calendar, DollarSign, ArrowUpRight, CheckCircle2, 
   XCircle, FileText, UserMinus, ShieldAlert, TrendingUp, MessageSquare, CheckCircle,
-  Database, RefreshCw, AlertCircle, HardDrive, CheckSquare
+  Database, RefreshCw, AlertCircle, HardDrive, CheckSquare, BookOpen, Plus
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -18,6 +18,7 @@ interface AdminPanelProps {
   journals?: any[];
   blogs?: any[];
   notifications?: any[];
+  onNavigateToTab?: (tab: string) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -31,7 +32,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onOpenChat,
   journals = [],
   blogs = [],
-  notifications = []
+  notifications = [],
+  onNavigateToTab
 }) => {
   // Compute Dashboard Metrics
   const totalUsersCount = allUsers.length;
@@ -51,6 +53,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // PostgreSQL Sync States
   const [dbStats, setDbStats] = useState<Record<string, number> | null>(null);
+  const [emailDuplicates, setEmailDuplicates] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [statsError, setStatsError] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -58,6 +61,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     success: boolean;
     message: string;
     syncedCounts?: Record<string, number>;
+    error?: string;
   } | null>(null);
 
   const fetchDbStats = async () => {
@@ -68,6 +72,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const data = await res.json();
       if (data.success) {
         setDbStats(data.stats);
+        setEmailDuplicates(data.emailDuplicates || []);
       } else {
         setStatsError(data.message || "Failed to query PostgreSQL stats.");
       }
@@ -119,7 +124,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setSyncStatus({
         success: data.success,
         message: data.message,
-        syncedCounts: data.syncedCounts
+        syncedCounts: data.syncedCounts,
+        error: data.error
       });
       
       if (data.success) {
@@ -227,6 +233,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {syncStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-red-600" />}
               <span>{syncStatus.message}</span>
             </div>
+            {syncStatus.error && !syncStatus.success && (
+              <div className="bg-red-100/70 border border-red-200 text-red-900 p-2.5 rounded-lg text-[11px] font-mono whitespace-pre-wrap mt-1">
+                <strong>Raw SQL Error:</strong> {syncStatus.error}
+              </div>
+            )}
             {syncStatus.syncedCounts && (
               <div className="font-mono text-[10px] grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-1.5 border-t border-emerald-200/50">
                 <div>👥 Users: {syncStatus.syncedCounts.users}</div>
@@ -362,6 +373,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </tbody>
           </table>
         </div>
+
+        {emailDuplicates && emailDuplicates.length > 0 && (
+          <div className="mt-6 p-5 bg-amber-50/70 rounded-3xl border border-amber-100 space-y-3 font-sans">
+            <div className="flex items-center gap-2 text-amber-800">
+              <AlertCircle className="w-5 h-5 text-amber-600 animate-pulse" />
+              <h4 className="text-xs font-bold font-sans uppercase tracking-wider flex items-center gap-1">
+                Duplicate Email Key Conflicts Detected
+              </h4>
+            </div>
+            <p className="text-xs text-amber-700 font-medium leading-relaxed">
+              The following email addresses are linked to multiple unique user IDs. Having duplicate email records violates the standard <code className="bg-amber-100 text-amber-900 px-1 py-0.5 rounded font-mono">UNIQUE</code> constraint in production databases, causing synchronization conflicts.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pt-1">
+              {emailDuplicates.map((dup, idx) => (
+                <div key={idx} className="p-4 bg-white border border-amber-100/60 rounded-2xl space-y-1.5 shadow-xs">
+                  <div className="flex justify-between items-center border-b border-gray-50 pb-1.5">
+                    <span className="font-mono font-bold text-gray-950 text-xs selection:bg-amber-100 select-all">{dup.email}</span>
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-extrabold rounded-full font-mono uppercase">
+                      {dup.occurrence_count} Accounts
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 mt-2">
+                    {dup.accounts?.map((acc: any, accIdx: number) => (
+                      <div key={accIdx} className="p-2 bg-gray-50 rounded-xl space-y-0.5 text-[10px]">
+                        <p className="font-bold text-gray-800 flex justify-between">
+                          <span>{acc.name || "Unnamed Athlete"}</span>
+                          <span className="text-[9px] font-semibold font-mono text-violet-600 bg-violet-50 px-1 leading-none self-center rounded border border-violet-100 uppercase">{acc.role}</span>
+                        </p>
+                        <p className="text-[9px] text-gray-400 font-mono select-all">UID: {acc.uid}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* DASHBOARD METRICS SUMMARY WIDGETS */}
@@ -689,6 +737,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Mindset Resources & Library */}
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4">
+            <h3 className="text-sm font-bold text-gray-950 flex items-center gap-1.5 font-sans">
+              <BookOpen className="w-4 h-4 text-violet-600" />
+              Athlete Mindset Resource Library
+            </h3>
+            <p className="text-xs text-gray-400">
+              Approved sport psychologists and super admins can publish academic blogs about match anxiety and focus.
+            </p>
+            {blogs && blogs.length > 0 && (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {blogs.slice(0, 3).map((blog) => (
+                  <div key={blog.id} className="p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-left">
+                    <p className="text-xs font-bold text-gray-800 line-clamp-1">{blog.title}</p>
+                    <p className="text-[9px] text-gray-450 mt-0.5 capitalize">{blog.category.replace(/_/g, " ")} • {blog.authorName}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => onNavigateToTab ? onNavigateToTab("blogs") : alert("Please click the 'Mental Library' tab in the top navigation bar to write blogs.")}
+              className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-extrabold rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm font-sans"
+            >
+              <Plus className="w-4 h-4" />
+              Manage & Publish Blogs
+            </button>
           </div>
 
           {/* System status security logs */}

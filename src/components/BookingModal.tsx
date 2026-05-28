@@ -459,15 +459,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   )}
                 </div>
 
-                {/* EXPLICIT CALLOUT MESSAGE */}
-                <div className="p-3.5 bg-amber-50/80 border border-amber-200/50 rounded-2xl flex items-start space-x-2 text-amber-900 shadow-xs">
-                  <PhoneCall className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                  <div className="text-[11px] leading-relaxed font-sans font-medium">
-                    <strong className="text-amber-800 font-extrabold uppercase tracking-wide block mb-0.5 font-sans">Booking Request Note</strong>
-                    We have received your booking request, our team will call you and verify the details before confirming your booking.
-                  </div>
-                </div>
-
                 <div className="flex justify-between items-center pt-3 border-t border-gray-100 bg-white">
                   <span className="text-xs text-gray-500">Fee to pay: <strong className="text-slate-900 font-extrabold">₹{therapist.sessionFee}</strong></span>
                   

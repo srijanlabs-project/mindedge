@@ -72,6 +72,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({
   const [savedTranscripts, setSavedTranscripts] = useState<SavedTranscript[]>([]);
   const [selectedTranscript, setSelectedTranscript] = useState<SavedTranscript | null>(null);
   const [savingTranscriptState, setSavingTranscriptState] = useState(false);
+  const [closingSession, setClosingSession] = useState(false);
 
   // Google Calendar Integration states
   const [syncingGoogleCalendar, setSyncingGoogleCalendar] = useState<string | null>(null);
@@ -97,6 +98,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({
   // 1. Gather all paid appointments relevant to the current user
   const relevantAppointments = appointments.filter((appt) => {
     if (appt.paymentStatus !== "paid") return false;
+    if (appt.status === "completed" || appt.status === "cancelled") return false;
     if (currentProfile.role === "therapist") {
       return appt.therapistId === currentUser.uid;
     } else {
@@ -284,6 +286,32 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({
       alert("Database is currently syncing, failed to commit.");
     } finally {
       setSavingTranscriptState(false);
+    }
+  };
+
+  // Close active chat session, set status to completed
+  const handleCloseChatSession = async () => {
+    if (!selectedAppointmentId) return;
+    if (!window.confirm("Are you sure you want to close this chat session? This will mark the session as Completed and move it to historical archives, terminating the live communication channel.")) {
+      return;
+    }
+    setClosingSession(true);
+    try {
+      await updateDoc(doc(db, "appointments", selectedAppointmentId), {
+        status: "completed"
+      });
+      setSelectedAppointmentId("");
+      setActivePartnerId("");
+      setActivePartnerName("");
+      setMessages([]);
+      if (onClearActiveAppointmentId) {
+        onClearActiveAppointmentId();
+      }
+    } catch (err) {
+      console.error("Error closing chat session:", err);
+      alert("Failed to close chat session. Please retry.");
+    } finally {
+      setClosingSession(false);
     }
   };
 
@@ -695,26 +723,40 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({
               </div>
 
               {/* Secure actions: Download log & Save snapshot button */}
-              {messages.length > 0 && (
+              {selectedAppointmentId && (
                 <div className="flex items-center gap-1.5 self-end sm:self-auto">
                   
-                  <button
-                    onClick={handleDownloadTranscriptFile}
-                    title="Export log as clean Markdown document to your local machine"
-                    className="p-2 bg-white hover:bg-slate-150 border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Export Markdown
-                  </button>
+                  {messages.length > 0 && (
+                    <>
+                      <button
+                        onClick={handleDownloadTranscriptFile}
+                        title="Export log as clean Markdown document to your local machine"
+                        className="p-2 bg-white hover:bg-slate-150 border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Export Markdown
+                      </button>
+
+                      <button
+                        onClick={handleSaveTranscriptToDB}
+                        disabled={savingTranscriptState}
+                        title="Commit transcript permanently to Firestore securely under Archived Logs"
+                        className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-indigo-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold disabled:opacity-50"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        {savingTranscriptState ? "Archiving..." : "Archive Log"}
+                      </button>
+                    </>
+                  )}
 
                   <button
-                    onClick={handleSaveTranscriptToDB}
-                    disabled={savingTranscriptState}
-                    title="Commit transcript permanently to Firestore securely under Archived Logs"
-                    className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-indigo-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold disabled:opacity-50"
+                    onClick={handleCloseChatSession}
+                    disabled={closingSession}
+                    title="Terminate dynamic chats, mark session completed"
+                    className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-[10.5px] font-bold disabled:opacity-50 font-sans"
                   >
-                    <Save className="w-3.5 h-3.5" />
-                    {savingTranscriptState ? "Archiving..." : "Archive Log"}
+                    <X className="w-3.5 h-3.5 text-rose-600" />
+                    {closingSession ? "Closing..." : "Close Session"}
                   </button>
 
                 </div>

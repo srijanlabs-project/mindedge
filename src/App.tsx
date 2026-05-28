@@ -542,42 +542,46 @@ export default function App() {
     }
 
     try {
+      let userUid = "";
       // First try standard sign-in
       try {
-        await signInWithEmailAndPassword(auth, email, pwd);
+        const cred = await signInWithEmailAndPassword(auth, email, pwd);
+        userUid = cred.user.uid;
       } catch {
         // If account does not exist, create it and seed associated onboarding profiles!
         const cred = await createUserWithEmailAndPassword(auth, email, pwd);
-        const userUid = cred.user.uid;
+        userUid = cred.user.uid;
+      }
 
-        if (role === "parent") {
-          const profile: UserProfile = {
-            uid: userUid,
-            name,
-            email,
-            role: "parent",
-            isApproved: true,
-            createdAt: new Date().toISOString()
-          };
-          await setDoc(doc(db, "users", userUid), profile);
-          // Seed child students registered in DB
-          await setDoc(doc(db, "students", "stud-1"), {
-            id: "stud-1",
-            name: "Rahul Jr",
-            parentUid: userUid,
-            age: 14,
-            gender: "Male",
-            school: "Bishop Cotton High School",
-            sport: "Athletics",
-            competitionLevel: "State",
-            confidenceLevel: 8,
-            stressLevel: 3,
-            focusLevel: 7,
-            goals: "Improve concentration & reduce match pressure",
-            currentChallenges: ["concentration", "anxiety"],
-            createdAt: new Date().toISOString()
-          });
-        } else if (role === "student") {
+      // NO matter what, guarantee that the user and role documents exist in Firestore:
+      if (role === "parent") {
+        const profile: UserProfile = {
+          uid: userUid,
+          name,
+          email,
+          role: "parent",
+          isApproved: true,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, "users", userUid), profile);
+        // Seed child students registered in DB
+        await setDoc(doc(db, "students", "stud-1"), {
+          id: "stud-1",
+          name: "Rahul Jr",
+          parentUid: userUid,
+          age: 14,
+          gender: "Male",
+          school: "Bishop Cotton High School",
+          sport: "Athletics",
+          competitionLevel: "State",
+          confidenceLevel: 8,
+          stressLevel: 3,
+          focusLevel: 7,
+          goals: "Improve concentration & reduce match pressure",
+          currentChallenges: ["concentration", "anxiety"],
+          createdAt: new Date().toISOString()
+        });
+      } else if (role === "student") {
           const profile: UserProfile = {
             uid: userUid,
             name,
@@ -662,7 +666,6 @@ export default function App() {
           };
           await setDoc(doc(db, "users", userUid), profile);
         }
-      }
     } catch (e: any) {
       setAuthError(e.message || "Failed Bypass Auto Setup");
     }
@@ -1068,12 +1071,17 @@ export default function App() {
 
       // Sync approval immediately to PostgreSQL database
       try {
-        await fetch(`/api/users/${id}/approve`, {
+        const approveRes = await fetch(`/api/users/${id}/approve`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ isApproved })
         });
-        console.log(`[PG Admin Sync] User ${id} approval status adjusted to ${isApproved} in PostgreSQL.`);
+        const approveData = await approveRes.json();
+        if (approveRes.ok && approveData.success) {
+          console.log(`[PG Admin Sync] User ${id} approval status adjusted to ${isApproved} in PostgreSQL.`);
+        } else {
+          console.warn("[PG Admin Sync] PostgreSQL synced and returned error:", approveData.error);
+        }
       } catch (sqlErr) {
         console.error("Failed to commit approval synchronization to PostgreSQL:", sqlErr);
       }
@@ -1091,8 +1099,10 @@ export default function App() {
         read: false
       });
 
-    } catch (err) {
+      alert(`Therapist compliance updated successfully to ${isApproved ? "Approved" : "Under Review"}.`);
+    } catch (err: any) {
       console.error(err);
+      alert(`Approval error: ${err.message || err}. Please ensure you are logged in with the correct Super Admin permissions.`);
     }
   };
 
@@ -1380,6 +1390,7 @@ export default function App() {
                     journals={journals}
                     blogs={blogs}
                     notifications={notifications}
+                    onNavigateToTab={(tab) => setActiveTab(tab)}
                   />
                 )}
               </>
@@ -1422,9 +1433,15 @@ export default function App() {
                 appointments={appointments}
                 onApproveTherapist={handleApproveTherapist}
                 onDeleteUser={handleDeleteUser}
+                onConfirmBookingRequest={handleConfirmBookingRequest}
+                onOpenChat={(apptId) => {
+                  setActiveTab("telehealth");
+                  setActiveAppointmentId(apptId);
+                }}
                 journals={journals}
                 blogs={blogs}
                 notifications={notifications}
+                onNavigateToTab={(tab) => setActiveTab(tab)}
               />
             )}
 

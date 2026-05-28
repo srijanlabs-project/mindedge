@@ -41,10 +41,27 @@ async function startServer() {
           stats[table] = -1; // Flag table error / table does not exist
         }
       }
+
+      // Check for duplicate emails in the users table to diagnose conflicts
+      let emailDuplicates: any[] = [];
+      try {
+        const dupResult = await pool.query(`
+          SELECT email, COUNT(*)::integer as occurrence_count, 
+                 json_agg(json_build_object('uid', uid, 'name', name, 'role', role)) as accounts
+          FROM users 
+          WHERE email IS NOT NULL AND email <> ''
+          GROUP BY email 
+          HAVING COUNT(*) > 1
+        `);
+        emailDuplicates = dupResult.rows;
+      } catch (dupErr: any) {
+        console.warn("Could not query duplicate emails analysis:", dupErr.message);
+      }
       
       res.json({
         success: true,
         stats,
+        emailDuplicates,
         timestamp: new Date().toISOString()
       });
     } catch (err: any) {
@@ -78,11 +95,51 @@ async function startServer() {
         notifications: 0
       };
 
+      // Track emails processed during session to avoid duplicate key conflicts within the payload
+      const syncedEmailsMap = new Map<string, string>();
+
+      const resolveUniqueEmailSetting = async (rawEmail: string, currentUid: string): Promise<string> => {
+        let email = (rawEmail || "").trim().toLowerCase();
+        if (!email) {
+          return `${currentUid}@mindedge.internal`;
+        }
+        
+        // 1. Check for duplicates in the current memory sync batch
+        const registeredUid = syncedEmailsMap.get(email);
+        if (registeredUid && registeredUid !== currentUid) {
+          const parts = email.split("@");
+          const localPart = parts[0];
+          const domain = parts[1] || "mindedge.internal";
+          email = `${localPart}+conflict-${currentUid.slice(0, 6)}@${domain}`;
+        }
+        
+        // 2. Check for matching rows of different UIDs already present in PostgreSQL table
+        let attempts = 0;
+        const baseEmail = email;
+        while (attempts < 5) {
+          const checkRes = await client.query("SELECT uid FROM users WHERE email = $1 AND uid <> $2", [email, currentUid]);
+          if (checkRes.rowCount === 0) {
+            break; 
+          }
+          attempts++;
+          const parts = baseEmail.split("@");
+          const localPart = parts[0];
+          const domain = parts[1] || "mindedge.internal";
+          email = `${localPart}+conflict-${currentUid.slice(0, 5)}-${attempts}@${domain}`;
+        }
+        
+        syncedEmailsMap.set(email, currentUid);
+        return email;
+      };
+
       // 1. Sync Users
       if (Array.isArray(users)) {
         for (const u of users) {
           const uid = u.uid || u.id;
           if (!uid) continue;
+
+          const resolvedEmail = await resolveUniqueEmailSetting(u.email, uid);
+
           await client.query(`
             INSERT INTO users (uid, name, email, mobile, role, relationship, city, photo_url, is_approved)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -99,7 +156,7 @@ async function startServer() {
           `, [
             uid,
             u.name || "Unnamed User",
-            u.email || `${uid}@mindedge.internal`,
+            resolvedEmail,
             u.mobile || u.phone || null,
             u.role || "student",
             u.relationship || null,
@@ -117,6 +174,8 @@ async function startServer() {
           const id = t.id;
           if (!id) continue;
           
+          const resolvedEmail = await resolveUniqueEmailSetting(t.email, id);
+
           // Outer guard: ensure therapist user exists
           const userCheck = await client.query("SELECT uid FROM users WHERE uid = $1", [id]);
           if (userCheck.rowCount === 0) {
@@ -124,8 +183,13 @@ async function startServer() {
             await client.query(`
               INSERT INTO users (uid, name, email, mobile, role, is_approved)
               VALUES ($1, $2, $3, $4, $5, $6)
-            `, [id, t.name || t.fullName || "Practitioner User", t.email || `${id}@therapist.internal`, t.mobile || null, "therapist", true]);
+            `, [id, t.name || t.fullName || "Practitioner User", resolvedEmail, t.mobile || null, "therapist", true]);
             syncedCounts.users++;
+          } else {
+            // Force synchronize email update in core user records
+            await client.query(`
+              UPDATE users SET email = $1, name = $2 WHERE uid = $3
+            `, [resolvedEmail, t.name || t.fullName || "Practitioner User", id]);
           }
 
           await client.query(`
@@ -163,7 +227,7 @@ async function startServer() {
           `, [
             id,
             t.name || "Practitioner",
-            t.email || `${id}@therapist.internal`,
+            resolvedEmail,
             t.mobile || null,
             t.photoUrl || t.photo_url || null,
             t.qualification || "Ph.D./Licensed Psychologist",
@@ -257,14 +321,21 @@ async function startServer() {
           const id = sch.id;
           if (!id) continue;
 
+          const resolvedEmail = await resolveUniqueEmailSetting(sch.email, id);
+
           // Guard: user exists
           const userCheck = await client.query("SELECT uid FROM users WHERE uid = $1", [id]);
           if (userCheck.rowCount === 0) {
             await client.query(`
               INSERT INTO users (uid, name, email, role, is_approved)
               VALUES ($1, $2, $3, $4, $5)
-            `, [id, sch.schoolName || sch.school_name || "School Representative", sch.email || `${id}@school.internal`, "school_admin", true]);
+            `, [id, sch.schoolName || sch.school_name || "School Representative", resolvedEmail, "school_admin", true]);
             syncedCounts.users++;
+          } else {
+            // Synchronize email on core user record for existing users
+            await client.query(`
+              UPDATE users SET email = $1, name = $2 WHERE uid = $3
+            `, [resolvedEmail, sch.schoolName || sch.school_name || "School Representative", id]);
           }
 
           await client.query(`
@@ -287,7 +358,7 @@ async function startServer() {
             id,
             sch.schoolName || sch.school_name || "Default School",
             sch.contactPerson || sch.contact_person || "Contact Person",
-            sch.email || `${id}@school.internal`,
+            resolvedEmail,
             sch.phone || sch.contactPhone || null,
             sch.address || null,
             typeof sch.numberOfStudents === "number" ? sch.numberOfStudents : (typeof sch.number_of_students === "number" ? sch.number_of_students : 0),
@@ -307,6 +378,10 @@ async function startServer() {
           // Resolve foreign keys to prevent integrity locks
           let verifiedTherapistId = a.therapistId || a.therapist_id;
           let verifiedBookerId = a.bookerId || a.booker_id;
+          if (!verifiedTherapistId || !verifiedBookerId) {
+            console.warn(`[PG Sync Warning] Skipping appointment ${id} because therapistId or bookerId was null.`);
+            continue;
+          }
           let verifiedStudentId = a.studentId || a.student_id;
           let verifiedParentUid = a.parentUid || a.parent_uid || null;
 
@@ -411,6 +486,10 @@ async function startServer() {
           if (!id) continue;
 
           let verifiedStudentId = j.studentId || j.student_id;
+          if (!verifiedStudentId) {
+            console.warn(`[PG Sync Warning] Skipping journal ${id} because studentId was null.`);
+            continue;
+          }
           const userCheck = await client.query("SELECT uid FROM users WHERE uid = $1", [verifiedStudentId]);
           if (userCheck.rowCount === 0) {
             // Insert dummy student user to preserve FK integrity
@@ -451,7 +530,7 @@ async function startServer() {
           if (userCheck.rowCount === 0) {
             await client.query(`
               INSERT INTO users (uid, name, email, role)
-              VALUES ($1, $2, $3, $5)
+              VALUES ($1, $2, $3, $4)
               ON CONFLICT (uid) DO NOTHING
             `, [authorId, b.authorName || b.author_name || "MINDEDGE Editor", `${authorId}@mindedge.internal`, "admin"]);
           }

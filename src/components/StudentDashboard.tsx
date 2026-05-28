@@ -43,7 +43,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
   // Filter appointments for the current student
   const studentSessions = appointments.filter(
-    (a) => a.paymentStatus === "paid" && (a.status === "confirmed" || a.status === "requested" || a.status === "completed")
+    (a) => (a.status === "confirmed" || a.status === "requested" || a.status === "completed")
   );
 
   const handleJournalSubmit = async (e: React.FormEvent) => {
@@ -354,9 +354,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
                           session.status === "completed" 
                             ? "bg-slate-100 text-slate-700" 
+                            : session.status === "requested"
+                            ? "bg-amber-100 text-amber-700 animate-pulse"
                             : "bg-indigo-100 text-indigo-700"
                         }`}>
-                          {session.status}
+                          {session.status === "requested" ? "under review" : session.status}
                         </span>
                       </div>
                       <div className="p-2 bg-white rounded-lg text-[10px] text-gray-500 font-mono flex justify-between">
