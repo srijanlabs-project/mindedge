@@ -21,18 +21,18 @@ export const MindedgeLogoSymbol: React.FC<{ className?: string }> = ({ className
   >
     <defs>
       <linearGradient id="m-grad-logo" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#FD585F" />
-        <stop offset="25%" stopColor="#FB6F42" />
-        <stop offset="55%" stopColor="#D946EF" />
-        <stop offset="85%" stopColor="#7E37FA" />
-        <stop offset="100%" stopColor="#4A75FF" />
+        <stop offset="0%" stopColor="#FFA15C" />
+        <stop offset="25%" stopColor="#FB5A71" />
+        <stop offset="55%" stopColor="#C046DF" />
+        <stop offset="85%" stopColor="#8044F9" />
+        <stop offset="100%" stopColor="#3C82F6" />
       </linearGradient>
     </defs>
     {/* A continuous rounded 'M' ribbon path that reproduces the curved structure of the Mindedge brand symbol precisely */}
     <path
-      d="M24,76 L24,36 C24,25 33,20 41,29 L50,40 L59,29 C67,20 76,25 76,36 L76,76"
+      d="M27,73 L27,40 C27,24 43,24 45,39 C48,48 52,48 55,39 C57,24 73,24 73,40 L73,73"
       stroke="url(#m-grad-logo)"
-      strokeWidth="15"
+      strokeWidth="14"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
