@@ -80,6 +80,103 @@ export default function App() {
     testDB();
   }, []);
 
+  // Dynamic SEO & Metadata updater based on active view state
+  useEffect(() => {
+    let title = "MindEdge | Athlete Mental Performance & Counseling Portal";
+    let desc = "India's leading sports psychology and counseling portal. Connecting student-athletes, parents, school coaches, and verified clinical psychologists for peak performance, focus training, and anxiety management.";
+    let keywords = "sports psychology, athlete mental performance, sports counseling, performance coaching, performance anxiety, mental readiness, youth sports development";
+    const imageUrl = "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&h=630&q=80";
+
+    switch (activeTab) {
+      case "about":
+        title = "About Us | MindEdge Sports Psychology Platform";
+        desc = "Discover our clinical mission, holistic assessment suite, and performance models designed for athletes of all age divisions to build extreme mental fortitude.";
+        keywords = "about sports psychology, MindEdge mission, athletic mental training, sports resilience, cognitive sports therapy";
+        break;
+      case "founders":
+        title = "Our Visionaries & Founders | MindEdge Sports Leadership";
+        desc = "Meet the seasoned psychologists, researchers, and tech pioneers democratizing professional-grade sports psychology and mental conditioning for all athletes.";
+        keywords = "MindEdge founders, sports psychology leadership team, clinical counselors, athletic vision, board of advisors";
+        break;
+      case "contact":
+        title = "Contact MindEdge Support | Query Form & Advisory Centers";
+        desc = "Get in touch with the MindEdge advisory and therapist onboarding teams. Registered offices, technical support channels, and callback request lines.";
+        keywords = "sports counseling help, contact psychologist, MindEdge customer support, institutional integration query";
+        break;
+      case "therapists":
+        title = "Verified Sports Psychologists Directory | Book Professional Counselors";
+        desc = "Browse, filter, and schedule consultations with verified clinical sports psychologists, stress coaches, and performance therapists mapped to your exact sport.";
+        keywords = "book sport psychologist near me, athlete counselors, sports therapists directory, cricket mental coach, tennis performance counseling";
+        break;
+      case "blogs":
+        title = "The MindEdge Journal | Elite Sports Psychology Insights";
+        desc = "Access proven cognitive models, mental training methodologies, articles covering competition pressure, and athlete self-wellness publications.";
+        keywords = "sports science articles, coping with injury depression, performance choke guides, cognitive behavior exercises, athlete mental logs";
+        break;
+      case "telehealth":
+        title = "Secure Video Counsel Hub | MindEdge Clinical Room";
+        desc = "Join your HIPAA-compliant interactive telehealth session. Integrated secure texting, digital focus logs, clinical progress summaries, and smart boards.";
+        keywords = "telehealth counseling, athlete remote therapy, virtual clinic sports, secure psychiatric video call";
+        break;
+      case "admin":
+        title = "Operations Desk | System Administration Dashboard";
+        desc = "MindEdge internal operational registry monitoring therapist credentials verification, institutional subscription matrices, and database sync status.";
+        keywords = "system administrative interface, credential lookup, DB operations portal";
+        break;
+      case "login":
+        title = "Secure Sign In Portal | Initialize Performance Assessment";
+        desc = "Access your customized mental conditioning dashboard, log daily journals, or book psychological appointments. Experience elite athletic mental coaching.";
+        keywords = "login sports clinic, secure athlete authentication, parent login portal, register counselor profile";
+        break;
+      case "dashboard":
+      case "children":
+      case "appointments":
+        if (profile) {
+          const formattedRole = profile.role.toUpperCase().replace("_", " ");
+          title = `${profile.name}'s ${formattedRole} Dashboard | MindEdge Portal`;
+          desc = `Welcome back, ${profile.name}. Access your private MindEdge workspace to monitor athletic progress metrics, journal logs, and upcoming clinical slots.`;
+          keywords = `athlete custom portal, active mental logs, school coordinator tools, billing details analytics, psychiatric checkins`;
+        } else {
+          title = "Athlete Onboarding & Assessment | MindEdge Setup Hub";
+          desc = "Complete your athletic profile, select your core sports, and initialize your baseline confidence, stress, and focus index measurements.";
+          keywords = "athlete diagnostic quiz, sports performance questionnaires, baseline confidence rating, stress evaluation log";
+        }
+        break;
+      default:
+        break;
+    }
+
+    // Set Document Title
+    document.title = title;
+
+    // Helper to safely alter or spawn meta representations
+    const syncHeadMeta = (nameOrProperty: string, contentStr: string, isProp = false) => {
+      const selector = isProp ? `meta[property="${nameOrProperty}"]` : `meta[name="${nameOrProperty}"]`;
+      let metaEl = document.querySelector(selector);
+      if (!metaEl) {
+        metaEl = document.createElement("meta");
+        metaEl.setAttribute(isProp ? "property" : "name", nameOrProperty);
+        document.head.appendChild(metaEl);
+      }
+      metaEl.setAttribute("content", contentStr);
+    };
+
+    // Populate SEO tags
+    syncHeadMeta("description", desc);
+    syncHeadMeta("keywords", keywords);
+
+    // Populate Open Graph tags
+    syncHeadMeta("og:title", title, true);
+    syncHeadMeta("og:description", desc, true);
+    syncHeadMeta("og:image", imageUrl, true);
+    syncHeadMeta("og:url", window.location.href, true);
+
+    // Populate Twitter Card tags
+    syncHeadMeta("twitter:title", title);
+    syncHeadMeta("twitter:description", desc);
+    syncHeadMeta("twitter:image", imageUrl);
+  }, [activeTab, profile]);
+
   // Intercept any global Firebase popup assertion/rejection errors triggered by iframe/sandbox limits
   useEffect(() => {
     const handleRejection = (event: PromiseRejectionEvent) => {
