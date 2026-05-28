@@ -1563,7 +1563,7 @@ export default function App() {
                 <div className="max-w-6xl mx-auto w-full py-4 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                     {/* Brand Banner */}
-                    <div className="lg:col-span-7 space-y-6">
+                    <div className="lg:col-span-7 space-y-6 order-2 lg:order-1">
                       <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-bold uppercase tracking-widest font-mono border border-indigo-100">
                         Multipurpose Sports Health Portal
                       </span>
@@ -1594,7 +1594,7 @@ export default function App() {
                     </div>
 
                     {/* Authentication Box */}
-                    <div className="lg:col-span-5 space-y-6">
+                    <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
                       <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
                         <div>
                           <h3 className="text-lg font-bold text-slate-900 tracking-tight">Access Secure Credentials</h3>
