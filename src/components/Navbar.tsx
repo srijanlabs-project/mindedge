@@ -316,26 +316,27 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* MOBILE HEADER (MATCHES image.png) */}
-        <div className="flex md:hidden justify-between items-center h-16">
-          {/* Left Element: Hamburger menu toggle button */}
-          <button
-            onClick={() => {
-              setMobileMenuOpen(!mobileMenuOpen);
-              setMobileUserMenuOpen(false);
-            }}
-            className="p-2 -ml-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer shrink-0"
-            title="Toggle Menu"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
-          </button>
+        {/* MOBILE HEADER */}
+        <div className="flex md:hidden items-center justify-between h-16">
+          {/* Left Elements: Hamburger toggle & Big Typography Logo Left Aligned */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(!mobileMenuOpen);
+                setMobileUserMenuOpen(false);
+              }}
+              className="p-2 -ml-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer shrink-0"
+              title="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
+            </button>
 
-          {/* Center Element: High-fidelity "M" logo symbol */}
-          <div 
-            className="cursor-pointer" 
-            onClick={() => setActiveTab(userProfile ? "dashboard" : "about")}
-          >
-            <MindedgeLogoSymbol className="w-8 h-8" />
+            <div 
+              className="cursor-pointer" 
+              onClick={() => setActiveTab(userProfile ? "dashboard" : "about")}
+            >
+              <MindedgeFullLogo />
+            </div>
           </div>
 
           {/* Right Elements: Bell notification & Profile Initial Circle */}
