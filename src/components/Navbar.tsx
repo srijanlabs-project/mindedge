@@ -39,10 +39,9 @@ export const MindedgeLogoSymbol: React.FC<{ className?: string }> = ({ className
   </svg>
 );
 
-// FULL BRAND LOGO (M SYMBOL + "Mindedge" TYPOGRAPHY MATCHING image_2.png)
+// FULL BRAND LOGO ("Mindedge" TYPOGRAPHY)
 export const MindedgeFullLogo: React.FC<{ className?: string }> = ({ className = "h-8" }) => (
-  <div className={`flex items-center space-x-2 select-none group ${className}`}>
-    <MindedgeLogoSymbol className="w-8 h-8" />
+  <div className={`flex items-center select-none group ${className}`}>
     <span className="text-[21px] font-bold tracking-tight text-[#110D44] font-sans flex items-center">
       <span>Mind</span>
       <span className="bg-gradient-to-r from-[#D946EF] via-[#AB52F7] to-[#516CFF] bg-clip-text text-transparent font-extrabold">edge</span>
