@@ -1,0 +1,6 @@
+{
+  "name": "Athlete Mental Performance Portal",
+  "description": "A clean, minimal portal connecting student-athletes, parents, sports psychologists, and school coaches to support mental performance and wellness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

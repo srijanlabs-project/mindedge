@@ -1,0 +1,220 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Base user profile for everyone in the system, detailing their primary role and general contact info.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user authentication ID." },
+        "name": { "type": "string", "description": "The full name of the user." },
+        "email": { "type": "string", "description": "The registration email address." },
+        "mobile": { "type": "string", "description": "Contact number of the user." },
+        "role": { "type": "string", "enum": ["parent", "student", "therapist", "school_admin", "admin"], "description": "System role controlling dashboard redirection." },
+        "relationship": { "type": "string", "description": "Mother, Father, or Guardian (for Parents)." },
+        "city": { "type": "string", "description": "Resident city." },
+        "photoURL": { "type": "string", "description": "Public profile picture link." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Student": {
+      "title": "Student Profile",
+      "description": "Onboarding details and mental stats for students, registered either by parents or students directly.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "parentId": { "type": "string", "description": "The parent's UID if registered by a parent." },
+        "studentId": { "type": "string", "description": "The direct student user UID if they register separately." },
+        "name": { "type": "string" },
+        "age": { "type": "integer" },
+        "gender": { "type": "string" },
+        "school": { "type": "string" },
+        "sport": { "type": "string" },
+        "competitionLevel": { "type": "string", "description": "School, State, National, etc." },
+        "trainingFrequency": { "type": "string", "description": "Hours or days per week." },
+        "confidenceLevel": { "type": "integer", "description": "1 to 10 self assessment." },
+        "stressLevel": { "type": "integer", "description": "1 to 10 self assessment." },
+        "focusLevel": { "type": "integer", "description": "1 to 10 self assessment." },
+        "goals": { "type": "string" },
+        "currentChallenges": { "type": "array", "description": "Challenges like anxiety, concentration, etc." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "sport", "competitionLevel"]
+    },
+    "Therapist": {
+      "title": "Therapist Details",
+      "description": "Professional qualifications, active slot parameters, and approval states for therapists.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Therapist user UID" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "mobile": { "type": "string" },
+        "qualification": { "type": "string" },
+        "experience": { "type": "integer" },
+        "specialization": { "type": "string" },
+        "languages": { "type": "string", "description": "Languages spoken, e.g. English, Hindi" },
+        "sportsExpertise": { "type": "string", "description": "Expertise in mental coaching for football, cricket, tennis, etc." },
+        "certificationsUrl": { "type": "string", "description": "Uploaded credential link." },
+        "degreeDocumentsUrl": { "type": "string" },
+        "identityProofUrl": { "type": "string" },
+        "displayConsent": { "type": "boolean" },
+        "serviceAgreement": { "type": "boolean" },
+        "dataUsageAgreement": { "type": "boolean" },
+        "isApproved": { "type": "boolean", "description": "Admin approval trigger." },
+        "sessionFee": { "type": "integer", "description": "Session cost in INR." },
+        "availableDays": { "type": "array", "description": "Days of the week therapist is free, e.g., ['Mon', 'Wed']" },
+        "availableTimeSlots": { "type": "array", "description": "Time ranges, e.g. ['10:00 AM', '02:00 PM']" },
+        "sessionDuration": { "type": "integer", "description": "Minutes per session usually 45 or 60." },
+        "biography": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "qualification", "specialization", "sessionFee"]
+    },
+    "School": {
+      "title": "School Partner Details",
+      "description": "Profile data for participating institutional partner admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "School Admin UID" },
+        "schoolName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "numberOfStudents": { "type": "integer" },
+        "sportsPrograms": { "type": "string" },
+        "existingCounselorDetails": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "schoolName", "contactPerson"]
+    },
+    "Appointment": {
+      "title": "Therapy Session Appointment",
+      "description": "Schedules, meeting credentials, payment associations, dynamic notes, and tracking elements.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "therapistId": { "type": "string" },
+        "therapistName": { "type": "string" },
+        "bookerId": { "type": "string", "description": "The parent or direct student booker ID." },
+        "bookerType": { "type": "string", "enum": ["parent", "student"] },
+        "studentId": { "type": "string", "description": "Referenced student record profile details." },
+        "studentName": { "type": "string" },
+        "date": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "status": { "type": "string", "enum": ["requested", "confirmed", "completed", "cancelled", "rescheduled"] },
+        "videoLink": { "type": "string", "description": "Jitsi or Google Meet web consultation link." },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid"] },
+        "sessionNotes": { "type": "string", "description": "Therapist-exclusive session update outcomes." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "therapistId", "bookerId", "studentName", "date", "timeSlot", "status"]
+    },
+    "Payment": {
+      "title": "Payment Record",
+      "description": "Database reference storing official Razorpay/Cashfree transactional details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "paymentId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "appointmentId": { "type": "string" },
+        "amount": { "type": "integer" },
+        "paymentMode": { "type": "string" },
+        "status": { "type": "string", "enum": ["success", "failed"] },
+        "transactionTime": { "type": "string", "format": "date-time" },
+        "receiptUrl": { "type": "string" }
+      },
+      "required": ["id", "paymentId", "userId", "appointmentId", "amount", "status"]
+    },
+    "Blog": {
+      "title": "Mental Blog Resource",
+      "description": "Content published by approved therapists for athlete development and parent guidance resource listings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "category": { "type": "string", "enum": ["competition_anxiety", "focus_concentration", "parent_guidance", "mental_fitness", "athlete_development"] },
+        "image": { "type": "string" },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "content", "authorId", "category"]
+    },
+    "Journal": {
+      "title": "Student Journal Entry",
+      "description": "Private, student-only diagnostic journal descriptions for self therapy.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "mood": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "studentId", "title", "content"]
+    },
+    "Notification": {
+      "title": "Notification Event",
+      "description": "User specific warnings and text indicators regarding bookings, payments, and articles.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "message", "read"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Primary user directory."
+    },
+    "students/{studentId}": {
+      "schema": "Student",
+      "description": "Onboarded player profiles."
+    },
+    "therapists/{therapistId}": {
+      "schema": "Therapist",
+      "description": "Therapist professional detail listings."
+    },
+    "schools/{schoolId}": {
+      "schema": "School",
+      "description": "Partner school records."
+    },
+    "appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Therapy sessions."
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Official money receipts."
+    },
+    "blogs/{blogId}": {
+      "schema": "Blog",
+      "description": "Therapist-published content and articles."
+    },
+    "journals/{journalId}": {
+      "schema": "Journal",
+      "description": "Private student-only mind logs."
+    },
+    "notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Individual notifications alerts."
+    }
+  }
+}
