@@ -326,7 +326,7 @@ export const AssessmentWizard: React.FC<AssessmentWizardProps> = ({ age, sport, 
         <div className="space-y-4 p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100/50 text-xs text-gray-700 animate-in fade-in duration-200">
           <h5 className="font-extrabold text-indigo-950 text-[13px] flex items-center gap-1">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            Clinical Sports Psychology Formulas (MINDEDGE-SC)
+            Clinical Sports Psychology Formulas (YOVOEDGE-SC)
           </h5>
           <p className="leading-relaxed">
             Our mental indices are calculated using standard sports science frameworks, tailored for different age brackets (Youth, Teen, Elite).

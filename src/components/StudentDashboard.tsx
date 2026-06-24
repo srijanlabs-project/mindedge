@@ -256,7 +256,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold text-indigo-950">Discover Your High Performance Mental Indices</h4>
                     <p className="text-xs text-indigo-750 max-w-md mx-auto leading-relaxed">
-                      You haven't completed your baseline sports psychological diagnostic checklist yet. In just 2 minutes, MINDEDGE computes your customized Self belief indices, anxiety trigger thresholds, and selective attention spans.
+                      You have not completed your baseline sports psychology check yet. In just 2 minutes, YovoEdge can map your confidence, anxiety, and focus indicators.
                     </p>
                   </div>
                   <button

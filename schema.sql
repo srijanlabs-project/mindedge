@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     city VARCHAR(100),
     photo_url TEXT,
     is_approved BOOLEAN DEFAULT TRUE,
+    profile_completed BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS students (
     name VARCHAR(255) NOT NULL,
     age INTEGER CHECK (age >= 0),
     gender VARCHAR(50),
+    school_catalog_id VARCHAR(128),
     school VARCHAR(255),
     sport VARCHAR(100) NOT NULL,
     competition_level VARCHAR(100) NOT NULL, -- 'school', 'state', 'national', 'elite'
@@ -80,7 +82,10 @@ CREATE TABLE IF NOT EXISTS therapists (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS schools (
     id VARCHAR(128) PRIMARY KEY REFERENCES users(uid) ON DELETE CASCADE,
+    catalog_school_id VARCHAR(128),
     school_name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    city VARCHAR(100),
     contact_person VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(50),
@@ -112,7 +117,23 @@ CREATE TABLE IF NOT EXISTS appointments (
     payment_id VARCHAR(128),
     order_id VARCHAR(128),
     payment_mode VARCHAR(50),
+    payment_screenshot TEXT,
     parent_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 4A. Tab: school_catalog
+-- ==========================================
+CREATE TABLE IF NOT EXISTS school_catalog (
+    id VARCHAR(128) PRIMARY KEY,
+    school_name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    city VARCHAR(100),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    submitted_by_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+    approved_by_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -166,15 +187,46 @@ CREATE TABLE IF NOT EXISTS journals (
 CREATE TABLE IF NOT EXISTS notifications (
     id VARCHAR(128) PRIMARY KEY,
     user_id VARCHAR(128) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    title VARCHAR(255),
     message TEXT NOT NULL,
     read BOOLEAN DEFAULT FALSE,
     type VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ==========================================
+-- 10. Tab: chats
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chats (
+    id VARCHAR(128) PRIMARY KEY,
+    appointment_id VARCHAR(128) NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+    sender_id VARCHAR(128) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    sender_name VARCHAR(255) NOT NULL,
+    sender_role VARCHAR(50) NOT NULL,
+    receiver_id VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+    receiver_name VARCHAR(255),
+    text TEXT NOT NULL,
+    quick_reply BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ==========================================
--- 10. INDEXES (Optimized for Querying)
+-- 11. Tab: transcripts
+-- ==========================================
+CREATE TABLE IF NOT EXISTS transcripts (
+    id VARCHAR(128) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    creator_id VARCHAR(128) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+    participant_names TEXT[] DEFAULT ARRAY[]::TEXT[],
+    messages_count INTEGER DEFAULT 0,
+    transcript TEXT NOT NULL,
+    appointment_id VARCHAR(128) REFERENCES appointments(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ==========================================
+-- 12. INDEXES (Optimized for Querying)
 -- ==========================================
 
 -- Index base role permissions lookup
@@ -184,6 +236,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_students_parent ON students(parent_id);
 CREATE INDEX IF NOT EXISTS idx_students_student ON students(student_id);
 CREATE INDEX IF NOT EXISTS idx_students_sport ON students(sport);
+CREATE INDEX IF NOT EXISTS idx_students_school_catalog ON students(school_catalog_id);
 
 -- Index therapist approval filters
 CREATE INDEX IF NOT EXISTS idx_therapists_is_approved ON therapists(is_approved);
@@ -207,3 +260,11 @@ CREATE INDEX IF NOT EXISTS idx_journals_student ON journals(student_id);
 -- Notification event index
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+
+-- Chat and transcript indexes
+CREATE INDEX IF NOT EXISTS idx_chats_appointment ON chats(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_chats_sender ON chats(sender_id);
+CREATE INDEX IF NOT EXISTS idx_transcripts_appointment ON transcripts(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_transcripts_creator ON transcripts(creator_id);
+CREATE INDEX IF NOT EXISTS idx_school_catalog_status ON school_catalog(status);
+CREATE INDEX IF NOT EXISTS idx_school_catalog_city ON school_catalog(city);

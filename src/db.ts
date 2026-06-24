@@ -27,6 +27,7 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS city VARCHAR(100),
       ADD COLUMN IF NOT EXISTS photo_url TEXT,
       ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT TRUE,
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
     `);
@@ -62,7 +63,10 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
     // Ensure core columns on schools exist to match the schema.sql expectation
     await client.query(`
       ALTER TABLE schools
+      ADD COLUMN IF NOT EXISTS catalog_school_id VARCHAR(128),
       ADD COLUMN IF NOT EXISTS school_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS location VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS city VARCHAR(100),
       ADD COLUMN IF NOT EXISTS contact_person VARCHAR(255),
       ADD COLUMN IF NOT EXISTS email VARCHAR(255),
       ADD COLUMN IF NOT EXISTS phone VARCHAR(50),
@@ -82,6 +86,7 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS age INTEGER DEFAULT 16,
       ADD COLUMN IF NOT EXISTS gender VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS school_catalog_id VARCHAR(128),
       ADD COLUMN IF NOT EXISTS school VARCHAR(255),
       ADD COLUMN IF NOT EXISTS sport VARCHAR(100),
       ADD COLUMN IF NOT EXISTS competition_level VARCHAR(100),
@@ -176,6 +181,20 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
 
     // 3. Ensure appointments columns are aligned
     await client.query(`
+      CREATE TABLE IF NOT EXISTS school_catalog (
+        id VARCHAR(128) PRIMARY KEY,
+        school_name VARCHAR(255) NOT NULL,
+        location VARCHAR(255),
+        city VARCHAR(100),
+        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+        submitted_by_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+        approved_by_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
       ALTER TABLE appointments
       ADD COLUMN IF NOT EXISTS therapist_id VARCHAR(128),
       ADD COLUMN IF NOT EXISTS therapist_name VARCHAR(255),
@@ -192,6 +211,7 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS payment_id VARCHAR(128),
       ADD COLUMN IF NOT EXISTS order_id VARCHAR(128),
       ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS payment_screenshot TEXT,
       ADD COLUMN IF NOT EXISTS parent_uid VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
@@ -238,10 +258,45 @@ export async function runMigrations(pool: pg.Pool): Promise<void> {
     await client.query(`
       ALTER TABLE notifications
       ADD COLUMN IF NOT EXISTS user_id VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS title VARCHAR(255),
       ADD COLUMN IF NOT EXISTS message TEXT,
       ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS type VARCHAR(100),
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS chats (
+        id VARCHAR(128) PRIMARY KEY,
+        appointment_id VARCHAR(128) REFERENCES appointments(id) ON DELETE CASCADE,
+        sender_id VARCHAR(128) REFERENCES users(uid) ON DELETE CASCADE,
+        sender_name VARCHAR(255),
+        sender_role VARCHAR(50),
+        receiver_id VARCHAR(128) REFERENCES users(uid) ON DELETE SET NULL,
+        receiver_name VARCHAR(255),
+        text TEXT,
+        quick_reply BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transcripts (
+        id VARCHAR(128) PRIMARY KEY,
+        title VARCHAR(255),
+        creator_id VARCHAR(128) REFERENCES users(uid) ON DELETE CASCADE,
+        participant_names TEXT[] DEFAULT ARRAY[]::TEXT[],
+        messages_count INTEGER DEFAULT 0,
+        transcript TEXT,
+        appointment_id VARCHAR(128) REFERENCES appointments(id) ON DELETE CASCADE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_students_school_catalog ON students(school_catalog_id);
+      CREATE INDEX IF NOT EXISTS idx_school_catalog_status ON school_catalog(status);
+      CREATE INDEX IF NOT EXISTS idx_school_catalog_city ON school_catalog(city);
     `);
 
     await client.query("COMMIT;");

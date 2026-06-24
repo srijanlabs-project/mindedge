@@ -63,7 +63,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [step, setStep] = useState(1); // 1 = Select slot, 2 = GPay confirmation screenshot upload, 3 = Pending verification!
   const [studentId, setStudentId] = useState(students[0]?.id || "");
   const [customStudentName, setCustomStudentName] = useState(students[0]?.name || "");
-  const [selectedDate, setSelectedDate] = useState("2026-06-03"); // Default date inside available window
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedSlot, setSelectedSlot] = useState(therapist.availableTimeSlots?.[0] || "10:00 AM");
   
   // GPay payment states
@@ -192,9 +192,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <Calendar className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-gray-900">Coaching Booking Portal</h3>
+              <h3 className="text-xl font-black text-gray-900">YovoEdge session booking</h3>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed max-w-sm mx-auto">
-                Schedule a professional sports mental performance assessment with <strong>{therapist.name}</strong>. An active student or parent advocate account is required to lock slots and secure payment ledgers.
+                Request a sports mental performance session with <strong>{therapist.name}</strong>. An active student or parent account is required to reserve slots and manage the booking flow.
               </p>
             </div>
 
@@ -203,7 +203,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 onClick={onRedirectToLogin}
                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-colors"
               >
-                Sign In or Register New Account
+                  Sign in or register
               </button>
               <button
                 onClick={onClose}
@@ -338,11 +338,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             {step === 2 && (
               <div className="space-y-5 animate-in slide-in-from-right-4 duration-150 font-sans">
                 <div>
-                  <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wider font-mono">
-                    GPay Payment: Step 2 of 2
+                    <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wider font-mono">
+                    Payment proof: Step 2 of 2
                   </span>
                   <h3 className="text-xl font-black text-gray-900 mt-2">GPay Transfer Verification</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Scan our official sports clinic QR code or transfer to secure VPA link, then attach the payment screenshot below.</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Use the temporary sample QR or sample UPI ID below, then attach the payment screenshot for verification.</p>
                 </div>
 
                 {/* TRANSFER INSTRUCTIONS BOARD WITH QR CODE */}
@@ -362,15 +362,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
                     </div>
-                    <span className="text-[9px] font-extrabold text-slate-500 font-mono tracking-wider mt-1.5 uppercase">Mindedge Athlete Pay</span>
+                    <span className="text-[9px] font-extrabold text-slate-500 font-mono tracking-wider mt-1.5 uppercase">YovoEdge Sample Pay</span>
                   </div>
 
                   {/* Transfer Details */}
                   <div className="md:col-span-3 space-y-2.5 flex flex-col justify-center">
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Athlete UPI VPA</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Sample athlete UPI VPA</p>
                       <p className="text-sm font-extrabold text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100/50 font-mono px-2 py-1 rounded-lg border border-indigo-100/30 inline-block mt-0.5 select-all cursor-pointer select-none transition-colors" title="Double click to copy">
-                        mindedge@axisbank
+                        sample@yovoedge
                       </p>
                     </div>
 

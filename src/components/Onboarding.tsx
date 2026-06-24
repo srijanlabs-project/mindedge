@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { UserProfile, UserRole } from "../types";
+import { SchoolCatalogItem, UserProfile, UserRole } from "../types";
+import { SchoolAutocomplete } from "./SchoolAutocomplete";
 import { 
   Heart, Dumbbell, ShieldCheck, ClipboardList, Briefcase, 
   GraduationCap, UserCheck, CheckSquare, Sparkles, Smile, ArrowRight 
@@ -8,10 +9,11 @@ import {
 interface OnboardingProps {
   userEmail: string;
   userName: string;
+  schoolCatalog: SchoolCatalogItem[];
   onSubmit: (role: UserRole, details: any) => Promise<void>;
 }
 
-export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onSubmit }) => {
+export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, schoolCatalog, onSubmit }) => {
   const [role, setRole] = useState<UserRole | "">("");
   const [step, setStep] = useState(1); // 1 = Role selection, 2 = Details form
   const [submitting, setSubmitting] = useState(false);
@@ -57,8 +59,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
   // Child Details (inside Parent Form)
   const [childName, setChildName] = useState("");
   const [childAge, setChildAge] = useState(14);
-  const [childGender, setChildGender] = useState("Male");
+  const [childGender, setChildGender] = useState("");
+  const [childSchoolCatalogId, setChildSchoolCatalogId] = useState("");
   const [childSchool, setChildSchool] = useState("");
+  const [childSchoolLocation, setChildSchoolLocation] = useState("");
+  const [childSchoolCity, setChildSchoolCity] = useState("");
   const [childSport, setChildSport] = useState("Football");
   const [childCompetition, setChildCompetition] = useState("School");
   const [childTraining, setChildTraining] = useState("3 days/week");
@@ -70,9 +75,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
 
   // 2. Student Data
   const [studentAge, setStudentAge] = useState(16);
-  const [studentGender, setStudentGender] = useState("Female");
+  const [studentGender, setStudentGender] = useState("");
+  const [studentSchoolCatalogId, setStudentSchoolCatalogId] = useState("");
   const [studentSchool, setStudentSchool] = useState("");
   const [studentCity, setStudentCity] = useState("");
+  const [studentSchoolLocation, setStudentSchoolLocation] = useState("");
   const [studentSport, setStudentSport] = useState("Tennis");
   const [studentCompLevel, setStudentCompLevel] = useState("State");
   const [studentTrainFreq, setStudentTrainFreq] = useState("4 hours/week");
@@ -103,13 +110,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
   const [therapistDataAgreement, setTherapistDataAgreement] = useState(false);
 
   // 4. School Data
+  const [schoolCatalogId, setSchoolCatalogId] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolLocation, setSchoolLocation] = useState("");
+  const [schoolCity, setSchoolCity] = useState("");
   const [schoolContact, setSchoolContact] = useState(userName);
   const [schoolPhone, setSchoolPhone] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [numStudents, setNumStudents] = useState(400);
   const [sportsPrograms, setSportsPrograms] = useState("Interclash leagues, Football team");
   const [currentCounselor, setCurrentCounselor] = useState("None currently affiliated");
+
+  const selectedChildSchool = schoolCatalog.find((item) => item.id === childSchoolCatalogId);
+  const selectedStudentSchool = schoolCatalog.find((item) => item.id === studentSchoolCatalogId);
+  const selectedAdminSchool = schoolCatalog.find((item) => item.id === schoolCatalogId);
 
   const toggleChallenge = (item: string) => {
     if (challenges.includes(item)) {
@@ -139,7 +153,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
       let payload: any = {};
 
       if (role === "parent") {
-        if (!parentMobile || !childName || !childSchool) {
+        const resolvedChildSchool = selectedChildSchool?.schoolName || childSchool;
+        const resolvedChildSchoolLocation = selectedChildSchool?.location || childSchoolLocation;
+        const resolvedChildSchoolCity = selectedChildSchool?.city || childSchoolCity;
+        if (!parentMobile || !childName || !childGender || !resolvedChildSchool) {
           throw new Error("Please fill out parent contact details and student information.");
         }
         if (!consentParticipation || !consentData || !consentCommunication || !consentTerms) {
@@ -152,7 +169,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
           childName,
           childAge,
           childGender,
-          childSchool,
+          childSchoolCatalogId: selectedChildSchool?.id,
+          childSchool: resolvedChildSchool,
+          childSchoolLocation: resolvedChildSchoolLocation,
+          childSchoolCity: resolvedChildSchoolCity,
           childSport,
           childCompetition,
           childTraining,
@@ -162,14 +182,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
           consentTerms
         };
       } else if (role === "student") {
-        if (!studentSchool || !studentCity || !goals) {
+        const resolvedStudentSchool = selectedStudentSchool?.schoolName || studentSchool;
+        const resolvedStudentSchoolLocation = selectedStudentSchool?.location || studentSchoolLocation;
+        const resolvedStudentSchoolCity = selectedStudentSchool?.city || studentCity;
+        if (!studentGender || !resolvedStudentSchool || !studentCity || !goals) {
           throw new Error("Please populate your school location and mental development goals.");
         }
         payload = {
           studentName: userName,
           studentAge,
           studentGender,
-          studentSchool,
+          studentSchoolCatalogId: selectedStudentSchool?.id,
+          studentSchool: resolvedStudentSchool,
+          studentSchoolLocation: resolvedStudentSchoolLocation,
+          studentSchoolCity: resolvedStudentSchoolCity,
           studentCity,
           studentSport,
           studentCompLevel,
@@ -209,11 +235,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
           isApproved: false // Admin approval required
         };
       } else if (role === "school_admin") {
-        if (!schoolName || !schoolPhone || !schoolAddress) {
+        const resolvedAdminSchool = selectedAdminSchool?.schoolName || schoolName;
+        const resolvedAdminLocation = selectedAdminSchool?.location || schoolLocation;
+        const resolvedAdminCity = selectedAdminSchool?.city || schoolCity;
+        if (!resolvedAdminSchool || !schoolPhone || !schoolAddress) {
           throw new Error("Please complete the school board address and point of contact.");
         }
         payload = {
-          schoolName,
+          schoolCatalogId: selectedAdminSchool?.id,
+          schoolName: resolvedAdminSchool,
+          schoolLocation: resolvedAdminLocation,
+          schoolCity: resolvedAdminCity,
           schoolContact,
           schoolPhone,
           schoolAddress,
@@ -236,7 +268,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
       {/* Dynamic Title Headers */}
       <div className="text-center mb-8">
         <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-full uppercase tracking-widest font-sans border border-indigo-100">
-          MINDEDGE Portal Onboarding
+          YovoEdge Portal Onboarding
         </span>
         <h1 className="text-2xl font-bold text-slate-900 mt-3 tracking-tight">
           Configure Your Mental Mindset Path
@@ -404,21 +436,26 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
                         value={childGender}
                         onChange={(e) => setChildGender(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20"
+                        required
                       >
+                        <option value="">Select gender</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Other</option>
+                        <option>Others</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">School / College Affiliation</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. St. Thomas High"
-                        value={childSchool}
-                        onChange={(e) => setChildSchool(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20"
-                        required
+                    <div className="sm:col-span-3">
+                      <SchoolAutocomplete
+                        label="School / College Affiliation"
+                        catalog={schoolCatalog}
+                        selectedSchoolId={childSchoolCatalogId}
+                        onSelectedSchoolIdChange={setChildSchoolCatalogId}
+                        otherSchoolName={childSchool}
+                        onOtherSchoolNameChange={setChildSchool}
+                        otherLocation={childSchoolLocation}
+                        onOtherLocationChange={setChildSchoolLocation}
+                        otherCity={childSchoolCity}
+                        onOtherCityChange={setChildSchoolCity}
                       />
                     </div>
                     <div>
@@ -461,7 +498,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
                         onChange={(e) => setConsentParticipation(e.target.checked)}
                         className="mt-0.5"
                       />
-                      <span>I give consent for my child to participate in MindEdge mental diagnostics & video sports coaching sessions.</span>
+                      <span>I give consent for my child to participate in YovoEdge mental diagnostics and video sports counseling sessions.</span>
                     </label>
                     <label className="flex items-start gap-2 cursor-pointer p-1">
                       <input
@@ -522,21 +559,32 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
                         value={studentGender}
                         onChange={(e) => setStudentGender(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm"
+                        required
                       >
+                        <option value="">Select gender</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Other</option>
+                        <option>Others</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">School Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. National College"
-                        value={studentSchool}
-                        onChange={(e) => setStudentSchool(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm"
-                        required
+                    <div className="sm:col-span-2">
+                      <SchoolAutocomplete
+                        label="School Name"
+                        catalog={schoolCatalog}
+                        selectedSchoolId={studentSchoolCatalogId}
+                        onSelectedSchoolIdChange={(value) => {
+                          setStudentSchoolCatalogId(value);
+                          const selectedSchool = schoolCatalog.find((item) => item.id === value);
+                          if (selectedSchool?.city) {
+                            setStudentCity(selectedSchool.city);
+                          }
+                        }}
+                        otherSchoolName={studentSchool}
+                        onOtherSchoolNameChange={setStudentSchool}
+                        otherLocation={studentSchoolLocation}
+                        onOtherLocationChange={setStudentSchoolLocation}
+                        otherCity={studentCity}
+                        onOtherCityChange={setStudentCity}
                       />
                     </div>
                     <div>
@@ -878,15 +926,18 @@ export const Onboarding: React.FC<OnboardingProps> = ({ userEmail, userName, onS
                     Institution Profile Details
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">School / College Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Greenwood International"
-                        value={schoolName}
-                        onChange={(e) => setSchoolName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm"
-                        required
+                    <div className="sm:col-span-3">
+                      <SchoolAutocomplete
+                        label="School / College Name"
+                        catalog={schoolCatalog}
+                        selectedSchoolId={schoolCatalogId}
+                        onSelectedSchoolIdChange={setSchoolCatalogId}
+                        otherSchoolName={schoolName}
+                        onOtherSchoolNameChange={setSchoolName}
+                        otherLocation={schoolLocation}
+                        onOtherLocationChange={setSchoolLocation}
+                        otherCity={schoolCity}
+                        onOtherCityChange={setSchoolCity}
                       />
                     </div>
                     <div>

@@ -16,8 +16,8 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({
 }) => {
   const [showAddWorkshop, setShowAddWorkshop] = useState(false);
   const [workshops, setWorkshops] = useState([
-    { id: "w-1", title: "Defeating Exam & Athlete Evaluation Anxiety", date: "2026-06-12", time: "02:00 PM", host: "Dr. Ananya Sharma", attendance: 250 },
-    { id: "w-2", title: "Parenting Elite Athlete Mindsets on Sidelines", date: "2026-06-25", time: "11:00 AM", host: "Sarah Jenkins", attendance: 120 }
+    { id: "w-1", title: "Sample: Defeating Exam and Athlete Evaluation Anxiety", date: "2026-06-12", time: "02:00 PM", host: "Dr. Ananya Sharma", attendance: 250, sample: true },
+    { id: "w-2", title: "Sample: Parenting Elite Athlete Mindsets on Sidelines", date: "2026-06-25", time: "11:00 AM", host: "Sarah Jenkins", attendance: 120, sample: true }
   ]);
 
   const [wTitle, setWTitle] = useState("");
@@ -36,7 +36,8 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({
         date: wDate,
         time: wTime || "12:00 PM",
         host: wHost,
-        attendance: 0
+        attendance: 0,
+        sample: false,
       }
     ]);
     setShowAddWorkshop(false);
@@ -46,8 +47,11 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({
 
   // Filter out students who are listed under this school
   const schoolNameKey = (schoolProfile?.schoolName || "").toLowerCase().trim();
+  const catalogSchoolId = schoolProfile?.catalogSchoolId;
   const schoolStudents = students.filter(
-    (s) => s.school && s.school.toLowerCase().trim().includes(schoolNameKey)
+    (s) => catalogSchoolId
+      ? s.schoolCatalogId === catalogSchoolId
+      : !!(s.school && s.school.toLowerCase().trim().includes(schoolNameKey))
   );
 
   // Compute mock localized metrics for visual charts
@@ -149,7 +153,7 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({
             </h3>
 
             {schoolStudents.length === 0 ? (
-              <p className="text-center py-8 text-gray-400 text-xs">No students registered from your school. Ensure parents choose "{schoolProfile?.schoolName}" during registration.</p>
+              <p className="text-center py-8 text-gray-400 text-xs">No students registered from your school yet. Students and parents will map here when they select "{schoolProfile?.schoolName}" from the approved school list.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
@@ -193,7 +197,7 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({
               {workshops.map((w) => (
                 <div key={w.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-2">
                   <span className="px-1.5 py-0.5 bg-amber-50 text-amber-800 text-[9px] rounded font-bold uppercase tracking-wider font-mono">
-                    Scheduled Seminar
+                    {w.sample ? "Sample seminar" : "Scheduled seminar"}
                   </span>
                   <p className="text-xs font-extrabold text-gray-800 leading-tight">{w.title}</p>
                   <p className="text-[10px] text-gray-500 font-sans mt-0.5">Host: 👩‍⚕️ {w.host}</p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, StudentProfile, TherapistProfile, Appointment } from "../types";
+import { UserProfile, StudentProfile, TherapistProfile, Appointment, SchoolCatalogItem } from "../types";
 import { 
   ShieldCheck, Users, Calendar, DollarSign, ArrowUpRight, CheckCircle2, 
   XCircle, FileText, UserMinus, ShieldAlert, TrendingUp, MessageSquare, CheckCircle,
@@ -11,6 +11,7 @@ interface AdminPanelProps {
   allStudents: StudentProfile[];
   allTherapists: TherapistProfile[];
   appointments: Appointment[];
+  schoolCatalog: SchoolCatalogItem[];
   onApproveTherapist: (id: string, isApproved: boolean) => Promise<void>;
   onDeleteUser: (uid: string) => Promise<void>;
   onConfirmBookingRequest?: (appointmentId: string) => Promise<void>;
@@ -19,6 +20,7 @@ interface AdminPanelProps {
   blogs?: any[];
   notifications?: any[];
   onNavigateToTab?: (tab: string) => void;
+  onRefreshData: () => Promise<void>;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -26,6 +28,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   allStudents,
   allTherapists,
   appointments,
+  schoolCatalog,
   onApproveTherapist,
   onDeleteUser,
   onConfirmBookingRequest,
@@ -33,7 +36,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   journals = [],
   blogs = [],
   notifications = [],
-  onNavigateToTab
+  onNavigateToTab,
+  onRefreshData
 }) => {
   // Compute Dashboard Metrics
   const totalUsersCount = allUsers.length;
@@ -63,6 +67,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     syncedCounts?: Record<string, number>;
     error?: string;
   } | null>(null);
+  const [schoolImportText, setSchoolImportText] = useState("");
+  const [schoolActionError, setSchoolActionError] = useState("");
+  const [schoolActionMessage, setSchoolActionMessage] = useState("");
+  const [savingSchoolId, setSavingSchoolId] = useState<string | null>(null);
+  const [schoolDrafts, setSchoolDrafts] = useState<Record<string, { schoolName: string; location: string; city: string; status: string }>>({});
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("yovoedge_session_token") || "";
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const pendingSchools = schoolCatalog.filter((item) => item.status === "pending");
+  const approvedSchools = schoolCatalog.filter((item) => item.status === "approved");
 
   const fetchDbStats = async () => {
     setLoadingStats(true);
@@ -87,6 +107,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   useEffect(() => {
     fetchDbStats();
   }, [allUsers, allStudents, allTherapists, appointments]);
+
+  useEffect(() => {
+    setSchoolDrafts(
+      schoolCatalog.reduce((acc, item) => {
+        acc[item.id] = {
+          schoolName: item.schoolName,
+          location: item.location || "",
+          city: item.city || "",
+          status: item.status,
+        };
+        return acc;
+      }, {} as Record<string, { schoolName: string; location: string; city: string; status: string }>),
+    );
+  }, [schoolCatalog]);
 
   const handleSyncData = async () => {
     setIsSyncing(true);
@@ -139,6 +173,86 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleImportSchools = async () => {
+    setSchoolActionError("");
+    setSchoolActionMessage("");
+    const lines = schoolImportText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const entries = lines
+      .filter((line, index) => !(index === 0 && /school\s*name/i.test(line)))
+      .map((line) => {
+        const parts = line.split(/\t|,|\|/).map((part) => part.trim());
+        return {
+          schoolName: parts[0] || "",
+          location: parts[1] || "",
+          city: parts[2] || "",
+        };
+      })
+      .filter((entry) => entry.schoolName);
+
+    if (!entries.length) {
+      setSchoolActionError("Add at least one row in the format: School Name, Location, City");
+      return;
+    }
+
+    setSavingSchoolId("bulk-import");
+    try {
+      const res = await fetch("/api/schools/catalog/import", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ entries }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to import schools.");
+      }
+      setSchoolImportText("");
+      setSchoolActionMessage(`${data.imported} school entries imported or updated.`);
+      await onRefreshData();
+    } catch (err: any) {
+      setSchoolActionError(err.message || "Failed to import schools.");
+    } finally {
+      setSavingSchoolId(null);
+    }
+  };
+
+  const handleSaveSchool = async (id: string, status?: "pending" | "approved" | "rejected") => {
+    const draft = schoolDrafts[id];
+    if (!draft?.schoolName) {
+      setSchoolActionError("School name is required.");
+      return;
+    }
+
+    setSchoolActionError("");
+    setSchoolActionMessage("");
+    setSavingSchoolId(id);
+    try {
+      const res = await fetch(`/api/schools/catalog/${id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          schoolName: draft.schoolName,
+          location: draft.location,
+          city: draft.city,
+          status: status || draft.status,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to update school.");
+      }
+      setSchoolActionMessage(`School entry updated: ${draft.schoolName}`);
+      await onRefreshData();
+    } catch (err: any) {
+      setSchoolActionError(err.message || "Failed to update school.");
+    } finally {
+      setSavingSchoolId(null);
     }
   };
 
@@ -410,6 +524,152 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-5">
+          <div className="space-y-1">
+            <h3 className="text-md font-extrabold text-gray-900 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-amber-600" />
+              School Catalog Management
+            </h3>
+            <p className="text-xs text-gray-500">
+              Upload the approved school list, and review student-submitted schools before they appear in the selector.
+            </p>
+          </div>
+          <div className="text-[11px] text-gray-500 font-mono">
+            {approvedSchools.length} approved • {pendingSchools.length} pending
+          </div>
+        </div>
+
+        {(schoolActionError || schoolActionMessage) && (
+          <div className={`p-3 rounded-xl text-xs border ${schoolActionError ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}>
+            {schoolActionError || schoolActionMessage}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-gray-900">Bulk Add Approved Schools</h4>
+            <p className="text-xs text-gray-500">
+              Paste one row per line using `School Name, Location, City` or tab-separated columns.
+            </p>
+            <textarea
+              rows={8}
+              value={schoolImportText}
+              onChange={(e) => setSchoolImportText(e.target.value)}
+              placeholder={"School Name, Location, City\nGreenwood High, Sarjapur Road, Bengaluru"}
+              className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-xs font-mono text-gray-700"
+            />
+            <button
+              onClick={handleImportSchools}
+              disabled={savingSchoolId === "bulk-import"}
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold disabled:opacity-60"
+            >
+              {savingSchoolId === "bulk-import" ? "Importing..." : "Import School List"}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-gray-900">Pending School Approvals</h4>
+            {pendingSchools.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-xs text-gray-400 text-center">
+                No pending school submissions right now.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {pendingSchools.map((school) => {
+                  const draft = schoolDrafts[school.id] || {
+                    schoolName: school.schoolName,
+                    location: school.location || "",
+                    city: school.city || "",
+                    status: school.status,
+                  };
+                  return (
+                    <div key={school.id} className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          value={draft.schoolName}
+                          onChange={(e) => setSchoolDrafts((current) => ({ ...current, [school.id]: { ...draft, schoolName: e.target.value } }))}
+                          className="rounded-xl border border-gray-200 px-3 py-2 text-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draft.location}
+                          onChange={(e) => setSchoolDrafts((current) => ({ ...current, [school.id]: { ...draft, location: e.target.value } }))}
+                          className="rounded-xl border border-gray-200 px-3 py-2 text-xs"
+                          placeholder="Location"
+                        />
+                        <input
+                          type="text"
+                          value={draft.city}
+                          onChange={(e) => setSchoolDrafts((current) => ({ ...current, [school.id]: { ...draft, city: e.target.value } }))}
+                          className="rounded-xl border border-gray-200 px-3 py-2 text-xs"
+                          placeholder="City"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleSaveSchool(school.id, "approved")}
+                          disabled={savingSchoolId === school.id}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold disabled:opacity-60"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleSaveSchool(school.id, "pending")}
+                          disabled={savingSchoolId === school.id}
+                          className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-[11px] font-bold disabled:opacity-60"
+                        >
+                          Save Draft
+                        </button>
+                        <button
+                          onClick={() => handleSaveSchool(school.id, "rejected")}
+                          disabled={savingSchoolId === school.id}
+                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[11px] font-bold disabled:opacity-60"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h4 className="text-sm font-bold text-gray-900">Approved Schools</h4>
+          <div className="rounded-2xl border border-gray-100 overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">School</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3">City</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {approvedSchools.slice(0, 12).map((school) => (
+                  <tr key={school.id}>
+                    <td className="px-4 py-3 font-semibold text-gray-800">{school.schoolName}</td>
+                    <td className="px-4 py-3 text-gray-500">{school.location || "-"}</td>
+                    <td className="px-4 py-3 text-gray-500">{school.city || "-"}</td>
+                  </tr>
+                ))}
+                {approvedSchools.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
+                      No approved schools in the catalog yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* DASHBOARD METRICS SUMMARY WIDGETS */}

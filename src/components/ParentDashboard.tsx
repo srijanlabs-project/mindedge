@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import { StudentProfile, Appointment } from "../types";
+import { StudentProfile, Appointment, SchoolCatalogItem } from "../types";
 import { 
   Heart, Calendar, Search, PlusCircle, UserCircle2, ArrowUpRight, 
   TrendingUp, Compass, Clock, CheckCircle2, ShieldAlert, Award, MessageSquare 
 } from "lucide-react";
 import { AssessmentWizard } from "./AssessmentWizard";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { SchoolAutocomplete } from "./SchoolAutocomplete";
 
 interface ParentDashboardProps {
   students: StudentProfile[];
   appointments: Appointment[];
+  schoolCatalog: SchoolCatalogItem[];
   onAddChild: (childData: any) => Promise<void>;
+  onAssessExistingChild: (studentId: string, scores: { confidence: number; stress: number; focus: number; supportAreas: string[]; goals: string }) => Promise<void>;
   onNavigateToDiscovery: () => void;
   onCancelAppointment: (id: string) => Promise<void>;
   activeSubTab?: "dashboard" | "children" | "appointments" | string;
@@ -21,7 +22,9 @@ interface ParentDashboardProps {
 export const ParentDashboard: React.FC<ParentDashboardProps> = ({
   students,
   appointments,
+  schoolCatalog,
   onAddChild,
+  onAssessExistingChild,
   onNavigateToDiscovery,
   onCancelAppointment,
   activeSubTab,
@@ -36,8 +39,11 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
   // Form details
   const [name, setName] = useState("");
   const [age, setAge] = useState(14);
-  const [gender, setGender] = useState("Male");
+  const [gender, setGender] = useState("");
+  const [schoolCatalogId, setSchoolCatalogId] = useState("");
   const [school, setSchool] = useState("");
+  const [schoolLocation, setSchoolLocation] = useState("");
+  const [schoolCity, setSchoolCity] = useState("");
   const [sport, setSport] = useState("Athletics");
   const [compLevel, setCompLevel] = useState("School");
   const [trainFreq, setTrainFreq] = useState("3 hours/week");
@@ -50,21 +56,30 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
     (a) => a.status === "completed" || a.status === "cancelled"
   );
 
+  const selectedCatalogSchool = schoolCatalog.find((item) => item.id === schoolCatalogId);
+
   const handleAddChildSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !school || !sport) return;
+    const resolvedSchool = selectedCatalogSchool?.schoolName || school;
+    if (!name || !gender || !resolvedSchool || !sport) return;
     setWizardStep("assessment");
   };
 
   const handleAddBasicOnly = async () => {
-    if (!name || !school || !sport) return;
+    const resolvedSchool = selectedCatalogSchool?.schoolName || school;
+    const resolvedSchoolCity = selectedCatalogSchool?.city || schoolCity;
+    const resolvedSchoolLocation = selectedCatalogSchool?.location || schoolLocation;
+    if (!name || !gender || !resolvedSchool || !sport) return;
     setAdding(true);
     try {
       await onAddChild({
         name,
         age: Number(age),
         gender,
-        school,
+        schoolCatalogId: selectedCatalogSchool?.id,
+        school: resolvedSchool,
+        schoolLocation: resolvedSchoolLocation,
+        schoolCity: resolvedSchoolCity,
         sport,
         competitionLevel: compLevel,
         trainingFrequency: trainFreq
@@ -74,7 +89,11 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
       setWizardStep("basic");
       // Reset form variables
       setName("");
+      setGender("");
+      setSchoolCatalogId("");
       setSchool("");
+      setSchoolLocation("");
+      setSchoolCity("");
     } catch (err) {
       console.error(err);
     } finally {
@@ -86,40 +105,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
     if (!assessingKid) return;
     setAdding(true);
     try {
-      const studentDocRef = doc(db, "students", assessingKid.id);
-      await updateDoc(studentDocRef, {
-        confidenceLevel: scores.confidence,
-        stressLevel: scores.stress,
-        focusLevel: scores.focus,
-        goals: scores.goals,
-        currentChallenges: scores.supportAreas
-      });
-
-      // Synchronically replicate directly to central relational PostgreSQL instance
-      await fetch("/api/db-sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          students: [{
-            id: assessingKid.id,
-            parentUid: assessingKid.parentId || null,
-            studentUid: assessingKid.studentId || null,
-            name: assessingKid.name,
-            age: assessingKid.age,
-            gender: assessingKid.gender,
-            school: assessingKid.school,
-            sport: assessingKid.sport,
-            competitionLevel: assessingKid.competitionLevel,
-            trainingFrequency: assessingKid.trainingFrequency || "",
-            confidenceLevel: scores.confidence,
-            stressLevel: scores.stress,
-            focusLevel: scores.focus,
-            goals: scores.goals,
-            currentChallenges: scores.supportAreas
-          }]
-        })
-      });
-
+      await onAssessExistingChild(assessingKid.id, scores);
       setAssessingKid(null);
     } catch (err) {
       console.error("Failed to submit direct existing assessment update:", err);
@@ -129,13 +115,19 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
   };
 
   const handleAssessmentWizardComplete = async (scores: { confidence: number; stress: number; focus: number; supportAreas: string[]; goals: string }) => {
+    const resolvedSchool = selectedCatalogSchool?.schoolName || school;
+    const resolvedSchoolCity = selectedCatalogSchool?.city || schoolCity;
+    const resolvedSchoolLocation = selectedCatalogSchool?.location || schoolLocation;
     setAdding(true);
     try {
       await onAddChild({
         name,
         age: Number(age),
         gender,
-        school,
+        schoolCatalogId: selectedCatalogSchool?.id,
+        school: resolvedSchool,
+        schoolLocation: resolvedSchoolLocation,
+        schoolCity: resolvedSchoolCity,
         sport,
         competitionLevel: compLevel,
         trainingFrequency: trainFreq,
@@ -149,7 +141,11 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
       setWizardStep("basic");
       // Reset
       setName("");
+      setGender("");
+      setSchoolCatalogId("");
       setSchool("");
+      setSchoolLocation("");
+      setSchoolCity("");
     } catch (err) {
       console.error(err);
     } finally {
@@ -631,25 +627,37 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm"
+                        required
                       >
+                        <option value="">Select gender</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Other</option>
+                        <option>Others</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5">School / Affiliated Board</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Baldwin Boys High"
-                      value={school}
-                      onChange={(e) => setSchool(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm"
-                      required
+                    <SchoolAutocomplete
+                      label="School / Affiliated Board"
+                      catalog={schoolCatalog}
+                      selectedSchoolId={schoolCatalogId}
+                      onSelectedSchoolIdChange={setSchoolCatalogId}
+                      otherSchoolName={school}
+                      onOtherSchoolNameChange={setSchool}
+                      otherLocation={schoolLocation}
+                      onOtherLocationChange={setSchoolLocation}
+                      otherCity={schoolCity}
+                      onOtherCityChange={setSchoolCity}
                     />
                   </div>
+
+                  {selectedCatalogSchool && (
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-[11px] text-emerald-800">
+                      Mapping child to <strong>{selectedCatalogSchool.schoolName}</strong>
+                      {selectedCatalogSchool.city ? `, ${selectedCatalogSchool.city}` : ""}.
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
@@ -688,7 +696,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
                     <button
                       type="button"
                       onClick={handleAddBasicOnly}
-                      disabled={adding || !name || !school || !sport}
+                      disabled={adding || !name || !gender || !(selectedCatalogSchool?.schoolName || school) || !sport}
                       className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
                     >
                       Add & Skip Assessment for Now

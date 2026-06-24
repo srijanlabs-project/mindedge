@@ -10,6 +10,7 @@ export interface UserProfile {
   city?: string;
   photoURL?: string;
   isApproved?: boolean;
+  profileCompleted?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -21,6 +22,7 @@ export interface StudentProfile {
   name: string;
   age: number;
   gender: string;
+  schoolCatalogId?: string;
   school: string;
   sport: string;
   competitionLevel: string; // school, state, national, elite
@@ -63,7 +65,10 @@ export interface TherapistProfile {
 
 export interface SchoolProfile {
   id: string; // admin user's UID
+  catalogSchoolId?: string;
   schoolName: string;
+  location?: string;
+  city?: string;
   contactPerson: string;
   email: string;
   phone?: string;
@@ -148,4 +153,40 @@ export interface NotificationItem {
   message: string;
   read: boolean;
   createdAt: number;
+}
+
+export interface SchoolCatalogItem {
+  id: string;
+  schoolName: string;
+  location?: string;
+  city?: string;
+  status: "pending" | "approved" | "rejected";
+  submittedByUid?: string;
+  approvedByUid?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  receiverId?: string;
+  receiverName?: string;
+  text: string;
+  quickReply?: boolean;
+  appointmentId?: string;
+  createdAt: string;
+}
+
+export interface ArchivedTranscript {
+  id: string;
+  title: string;
+  creatorId: string;
+  participantNames: string[];
+  messagesCount: number;
+  transcript: string;
+  createdAt: string;
+  appointmentId?: string;
 }

@@ -11,8 +11,8 @@ interface NavbarProps {
   onLogout: () => void;
 }
 
-// PREMIUM BRAND "M" LOGO SYMBOL (MATCHING image_3.png)
-export const MindedgeLogoSymbol: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
+// Premium brand symbol
+export const YovoEdgeLogoSymbol: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
   <svg 
     viewBox="0 0 100 100" 
     className={`${className} transition-transform duration-300 hover:scale-105`} 
@@ -28,7 +28,7 @@ export const MindedgeLogoSymbol: React.FC<{ className?: string }> = ({ className
         <stop offset="100%" stopColor="#3C82F6" />
       </linearGradient>
     </defs>
-    {/* A continuous rounded 'M' ribbon path that reproduces the curved structure of the Mindedge brand symbol precisely */}
+    {/* Rounded ribbon mark used for the YovoEdge brand symbol */}
     <path
       d="M27,73 L27,40 C27,24 43,24 45,39 C48,48 52,48 55,39 C57,24 73,24 73,40 L73,73"
       stroke="url(#m-grad-logo)"
@@ -39,12 +39,12 @@ export const MindedgeLogoSymbol: React.FC<{ className?: string }> = ({ className
   </svg>
 );
 
-// FULL BRAND LOGO ("Mindedge" TYPOGRAPHY)
-export const MindedgeFullLogo: React.FC<{ className?: string }> = ({ className = "h-8" }) => (
+// Full YovoEdge wordmark
+export const YovoEdgeFullLogo: React.FC<{ className?: string }> = ({ className = "h-8" }) => (
   <div className={`flex items-center select-none group ${className}`}>
     <span className="text-[21px] font-bold tracking-tight text-[#110D44] font-sans flex items-center">
-      <span>Mind</span>
-      <span className="bg-gradient-to-r from-[#D946EF] via-[#AB52F7] to-[#516CFF] bg-clip-text text-transparent font-extrabold">edge</span>
+      <span>Yovo</span>
+      <span className="bg-gradient-to-r from-[#D946EF] via-[#AB52F7] to-[#516CFF] bg-clip-text text-transparent font-extrabold">Edge</span>
     </span>
   </div>
 );
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="cursor-pointer shrink-0" 
             onClick={() => setActiveTab(userProfile ? "dashboard" : "about")}
           >
-            <MindedgeFullLogo />
+            <YovoEdgeFullLogo />
           </div>
 
           {/* Center Links (Spaced & aligned according to image_1.png) */}
@@ -156,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <Info className="w-4 h-4 text-slate-400" />
-                  About Mindedge
+                  About YovoEdge
                 </button>
                 <button
                   onClick={() => setActiveTab("therapists")}
@@ -165,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <Search className="w-4 h-4 text-slate-400" />
-                  Find Coaches
+                  Find Counselors
                 </button>
                 <button
                   onClick={() => setActiveTab("blogs")}
@@ -174,7 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <BookOpen className="w-4 h-4 text-slate-400" />
-                  Mental Library
+                  Resource Library
                 </button>
                 <button
                   onClick={() => setActiveTab("founders")}
@@ -207,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <Shield className="w-4 h-4 text-rose-400" />
-                Console Admin
+                Admin Console
               </button>
             )}
           </div>
@@ -278,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center space-x-3 select-none">
                   <div className="text-right">
                     <p className="text-xs font-extrabold text-slate-900 leading-tight">{userProfile.name}</p>
-                    <p className="text-[10px] text-slate-400 font-medium font-sans leading-none mt-0.5">{userProfile.email}</p>
+                    <p className="text-[10px] text-slate-400 font-medium font-sans leading-none mt-0.5">{userProfile.mobile || userProfile.email}</p>
                   </div>
 
                   {userProfile.photoURL ? (
@@ -310,7 +310,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveTab("login")}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
               >
-                Login now
+                Login
               </button>
             )}
           </div>
@@ -335,7 +335,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="cursor-pointer" 
               onClick={() => setActiveTab(userProfile ? "dashboard" : "about")}
             >
-              <MindedgeFullLogo />
+              <YovoEdgeFullLogo />
             </div>
           </div>
 
@@ -485,7 +485,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
               >
-                <Info className="w-4 h-4 text-slate-400" /> Track About
+                <Info className="w-4 h-4 text-slate-400" /> About YovoEdge
               </button>
               <button
                 onClick={() => {
@@ -494,7 +494,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
               >
-                <Search className="w-4 h-4 text-slate-400" /> Find Coaches
+                <Search className="w-4 h-4 text-slate-400" /> Find Counselors
               </button>
               <button
                 onClick={() => {
@@ -503,7 +503,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
               >
-                <BookOpen className="w-4 h-4 text-slate-400" /> Mental Library
+                <BookOpen className="w-4 h-4 text-slate-400" /> Resource Library
               </button>
               <button
                 onClick={() => {
@@ -512,7 +512,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
               >
-                <Users className="w-4 h-4 text-slate-400" /> Founders Page
+                <Users className="w-4 h-4 text-slate-400" /> Founders
               </button>
               <button
                 onClick={() => {
@@ -521,7 +521,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
               >
-                <Mail className="w-4 h-4 text-slate-400" /> Reach Out Us
+                <Mail className="w-4 h-4 text-slate-400" /> Contact Us
               </button>
             </>
           )}
@@ -534,7 +534,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="w-full text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
             >
-              <Shield className="w-4 h-4" /> Console Admin
+              <Shield className="w-4 h-4" /> Admin Console
             </button>
           )}
         </div>
@@ -550,7 +550,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-extrabold text-slate-900 truncate">{userProfile.name}</p>
-              <p className="text-[10px] text-slate-500 truncate">{userProfile.email}</p>
+              <p className="text-[10px] text-slate-500 truncate">{userProfile.mobile || userProfile.email}</p>
               <div className="mt-2 flex">
                 {getRoleBadge(userProfile.role)}
               </div>
